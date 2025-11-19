@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import fetch from "node-fetch";
 
 // --- ตั้งค่า ---
 const API_URL = "http://10.0.0.114:8019";
