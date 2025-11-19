@@ -19,12 +19,6 @@ async function getLastId() {
   );
   return res.rows[0]?.last_id || null;
 }
-async function getLastIdTest() {
-  const res = await poolPG.query(
-    "SELECT last_id FROM migrate_log_test WHERE status='success' ORDER BY id DESC LIMIT 1"
-  );
-  return res.rows[0]?.last_id || null;
-}
 
 app.get("/", async (req, res) => {
   try {
@@ -530,7 +524,8 @@ app.get("/api/logs", async (req, res) => {
   try {
     const result = await poolPG.query(`
       SELECT id, batch_no, last_id, record_count, status, started_at, finished_at
-      FROM migrate_log_test
+      FROM migrate_log_ffm
+      WHERE id > 50
       ORDER BY started_at DESC
       LIMIT 100
     `);
@@ -545,8 +540,8 @@ app.get("/api/logs/errors", async (req, res) => {
   try {
     const result = await poolPG.query(`
       SELECT id, batch_no, last_id, record_count, status, started_at, finished_at, error_message
-      FROM migrate_log_test
-      WHERE status = 'error'
+      FROM migrate_log_ffm
+      WHERE id > 50 AND status = 'error'
       ORDER BY started_at DESC
     `);
     res.json(result.rows);
@@ -561,7 +556,7 @@ app.get("/api/logs/:logId", async (req, res) => {
   try {
     const result = await poolPG.query(
       `SELECT id, log_id, recid, raw_data
-       FROM migrate_log_test_detail
+       FROM migrate_log_ffm_detail
        WHERE log_id = $1`,
       [logId]
     );
