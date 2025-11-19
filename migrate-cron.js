@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 // --- ตั้งค่า ---
 const API_URL = process.env.API_URL || "http://localhost:8019";
