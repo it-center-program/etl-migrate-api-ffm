@@ -46,6 +46,7 @@ async function runMigration() {
     console.log("Migration already running. Exiting.");
     return;
   }
+  let c_error = 0;
 
   createLock();
   console.log("Migration started...");
@@ -56,6 +57,11 @@ async function runMigration() {
       const count = await migrateBatch();
 
       if (count === -1) {
+        c_error += 1;
+        if (c_error > 3) {
+          console.log("Too many errors. Exiting.");
+          break;
+        }
         console.log(`Retrying after ${RETRY_DELAY_MS / 1000}s...`);
         await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
         continue; // retry batch
