@@ -41,6 +41,7 @@ async function migrateBatch() {
 // --- main loop ---
 async function runMigration() {
   if (isLocked()) {
+    console.log(LOCK_FILE);
     console.log("Migration already running. Exiting.");
     return;
   }
