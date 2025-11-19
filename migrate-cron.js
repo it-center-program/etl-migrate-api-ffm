@@ -1,11 +1,8 @@
 import fs from "fs";
 import path from "path";
-import dotenv from "dotenv";
-
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 // --- ตั้งค่า ---
-const API_URL = process.env.API_URL || "http://10.0.0.114:8019";
+const API_URL = "http://10.0.0.114:8019";
 const LOCK_FILE = path.join(process.cwd(), "migrate.lock");
 const RETRY_DELAY_MS = 3000;
 
