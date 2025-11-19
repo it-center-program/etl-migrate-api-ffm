@@ -25,8 +25,8 @@ function removeLock() {
 // --- migrate batch ---
 async function migrateBatch() {
   try {
-    console.log(`${API_URL}/api/test`);
-    const res = await fetch(`${API_URL}/api/test`);
+    console.log(`${API_URL}/api/migrateV2`);
+    const res = await fetch(`${API_URL}/api/migrateV2`);
     const data = await res.json();
     console.log(new Date().toISOString(), "Migrated batch:", data.count);
     return data.count;

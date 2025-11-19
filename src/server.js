@@ -62,7 +62,7 @@ async function saveLog({ lastId, recordCount, status, errorMessage }) {
 
 async function saveLogStart({ continueId, batchNo }) {
   const res = await poolPG.query(
-    `INSERT INTO migrate_log_test (continue_id , batch_no, status)
+    `INSERT INTO migrate_log_ffm (continue_id , batch_no, status)
      VALUES ($1, $2, 'running') RETURNING id`,
     [continueId, batchNo]
   );
@@ -78,7 +78,7 @@ async function saveLogFinish({
   errorMessage,
 }) {
   await poolPG.query(
-    `UPDATE migrate_log_test
+    `UPDATE migrate_log_ffm
      SET last_id=$1, record_count=$2, status=$3, error_message=$4, finished_at=NOW()
      WHERE id=$5`,
     [newLastId, recordCount, status, errorMessage, logId]
@@ -87,7 +87,7 @@ async function saveLogFinish({
 
 async function saveLogDetail(logId, row) {
   const sql = `
-    INSERT INTO migrate_log_test_detail (log_id, recid, raw_data)
+    INSERT INTO migrate_log_ffm_detail (log_id, recid, raw_data)
     VALUES ($1, $2, $3)
   `;
   await poolPG.query(sql, [logId, row.RECID2, row]);
@@ -97,6 +97,10 @@ async function saveLogDetail(logId, row) {
 app.get("/api/migrate", async (req, res) => {
   const startTime = Date.now();
   let client;
+  return res.status(400).json({
+    message: "Disable Route",
+    count: 0,
+  });
   try {
     const pool = await poolPromise;
     // const lastId = 1541756;
@@ -300,21 +304,22 @@ app.get("/api/migrate", async (req, res) => {
   }
 });
 
-app.get("/api/test", async (req, res) => {
+app.get("/api/migrateV2", async (req, res) => {
   const startTime = Date.now();
   let client;
   let logId;
+  let lastId;
   try {
     const pool = await poolPromise;
 
     // ดึง lastId ล่าสุด
     // const lastId = 1541756;
-    const lastId = (await getLastIdTest()) || 1541756;
+    lastId = (await getLastId()) || 1541756;
 
     // หา batch_no ล่าสุดของวันนี้
     const batchRes = await poolPG.query(`
       SELECT COALESCE(MAX(batch_no), 0) + 1 AS batch_no
-      FROM migrate_log_test
+      FROM migrate_log_ffm
       WHERE DATE(started_at) = CURRENT_DATE
     `);
     const batchNo = batchRes.rows[0].batch_no;
@@ -353,7 +358,7 @@ app.get("/api/test", async (req, res) => {
 
     // ลบข้อมูลรอบ error ก่อนหน้า (เฉพาะ record ที่ > lastId)
     await client.query(
-      `DELETE FROM etl_crm_test WHERE recid > $1 AND rectype='TEST'`,
+      `DELETE FROM etl_crm WHERE recid > $1 AND rectype='FULFILLMENT'`,
       [lastId]
     );
 
@@ -379,7 +384,7 @@ app.get("/api/test", async (req, res) => {
         full_address = `${row.CUS_TUMBON} ${row.CUS_AMPHOE} ${row.CUS_CITY} ${row.CUS_ZIP_CODE}`;
       }
       await client.query(
-        `INSERT INTO etl_crm_test (
+        `INSERT INTO etl_crm (
         recid, po_datetime, po_date, po_time, po_no, shipping_code, shipping_by, shipping_name,
         cus_tel_no, hn_code, firstname, lastname, fullname, ship_address, ship_subdistrict,
         ship_district, ship_province, ship_zipcode, ship_psd, remark, cus_full_address,
@@ -508,6 +513,7 @@ app.get("/api/test", async (req, res) => {
 
     await saveLogFinish({
       logId,
+      newLastId: lastId,
       recordCount: 0,
       status: "error",
       errorMessage: err.message,
@@ -554,7 +560,7 @@ app.get("/api/logs/:logId", async (req, res) => {
   const { logId } = req.params;
   try {
     const result = await poolPG.query(
-      `SELECT id, log_id,  recid, raw_data
+      `SELECT id, log_id, recid, raw_data
        FROM migrate_log_test_detail
        WHERE log_id = $1`,
       [logId]
